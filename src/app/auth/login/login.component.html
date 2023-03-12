@@ -1,1 +1,15 @@
-<p>login works!</p>
+<div class="container wrapper wrapper2">
+  <div class="row">
+      <!-- Form -->
+      <div class="col-md-12">
+          <h3>Log in</h3>
+          <form [formGroup]="loginForm" (ngSubmit)="login()" novalidate >
+              <div class="form-group">
+                  <label>Log in</label>
+                  <input type="text" formControlName="username" class="form-control" maxlength="200">
+              </div>
+              <button type="submit" class="btn btn-primary">Submit</button>
+          </form>
+      </div>
+  </div>
+</div>

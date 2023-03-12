@@ -1,30 +1,42 @@
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
+import { HttpClientModule } from '@angular/common/http';
+
 
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
-import { ListComponent } from './posts/list/list.component';
-import { DetailComponent } from './posts/detail/detail.component';
-import { EditComponent } from './posts/edit/edit.component';
-import { HeaderComponent } from './companents/header/header.component';
-import { FooterComponent } from './companents/footer/footer.component';
+
+import { HeaderComponent } from './components/header/header.component';
 import { LoginComponent } from './auth/login/login.component';
+import { FooterComponent } from './components/footer/footer.component';
+import { PaginationComponent } from './components/pagination/pagination.component';
+
+// import { PostPosts } from './posts/post.component';
+import { ListPosts } from './posts/list/list.component';
+import { AddPosts } from './posts/add/add.component';
+import { EditPosts } from './posts/edit/edit.component';
+import { PostService } from './posts/post.service';
+import { ReactiveFormsModule } from '@angular/forms';
+
 
 @NgModule({
   declarations: [
     AppComponent,
-    ListComponent,
-    DetailComponent,
-    EditComponent,
     HeaderComponent,
     FooterComponent,
-    LoginComponent
+    LoginComponent,
+    PaginationComponent,
+    ListPosts,
+    AddPosts,
+    EditPosts,
   ],
   imports: [
     BrowserModule,
-    AppRoutingModule
+    HttpClientModule,
+    AppRoutingModule,
+    ReactiveFormsModule
   ],
-  providers: [],
+  providers: [PostService],
   bootstrap: [AppComponent]
 })
 export class AppModule { }
