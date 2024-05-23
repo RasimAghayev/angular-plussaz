@@ -16,7 +16,7 @@
     "@angular/core": "^16.0.0-next.0",
     "@angular/forms": "^16.0.0-next.0",
     "@angular/platform-browser": "^16.0.0-next.0",
-    "@angular/platform-browser-dynamic": "^16.0.0-next.0",
+    "@angular/platform-browser-dynamic": "^18.0.0",
     "@angular/router": "^16.0.0-next.0",
     "bootstrap": "^5.2.3",
     "crypto-js": "^4.2.0",
