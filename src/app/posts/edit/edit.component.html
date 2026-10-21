@@ -1,19 +1,47 @@
-<div class="container wrapper wrapper2">
-  <div class="row">
-      <!-- Form -->
-      <div class="col-md-12">
-          <h3>Update title</h3>
-          <form [formGroup]="updatePostForm" (ngSubmit)="submitForm()" novalidate>
-              <div class="form-group">
-                  <label>Title</label>
-                  <input type="text" formControlName="title" class="form-control" maxlength="200">
-              </div>
-              <div class="form-group">
-                  <label>Body</label>
-                  <textarea class="form-control" formControlName="body" rows="3" maxlength="500"></textarea>
-              </div>
-              <button type="submit" class="btn btn-primary">Submit</button>
-          </form>
-      </div>
+<div class="row justify-content-center">
+  <div class="col-md-8">
+    <h1 class="h3 mb-3">Update the post</h1>
+
+    @if (loading()) {
+      <p class="text-muted">The post is on its way…</p>
+    } @else {
+      <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+        <div class="mb-3">
+          <label class="form-label" for="title">Title</label>
+          <input
+            id="title"
+            type="text"
+            class="form-control"
+            formControlName="title"
+            maxlength="200"
+          />
+          @if (form.controls.title.touched && form.controls.title.invalid) {
+            <div class="text-danger small mt-1">
+              The title is required and holds at most 200 characters.
+            </div>
+          }
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label" for="body">Body</label>
+          <textarea
+            id="body"
+            class="form-control"
+            formControlName="body"
+            rows="5"
+            maxlength="500"
+          ></textarea>
+          @if (form.controls.body.touched && form.controls.body.invalid) {
+            <div class="text-danger small mt-1">
+              The body is required and holds at most 500 characters.
+            </div>
+          }
+        </div>
+
+        <button type="submit" class="btn btn-primary" [disabled]="submitting()">
+          {{ submitting() ? 'Saving…' : 'Save' }}
+        </button>
+      </form>
+    }
   </div>
 </div>

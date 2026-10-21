@@ -1,29 +1,14 @@
-<nav class="navbar navbar-expand-md navbar-dark fixed-top bg-dark">
-    <div class="container-fluid">
-      <a class="navbar-brand" href="#">{{ getTitle() }}</a>
-      <div class="d-flex" role="search">
-        <button
-          class="btn btn-outline-primary"
-          routerLink="/posts-add"
-          *ngIf="loginIn"
-          type="submit">
-          New Post
-        </button>
-        <button
-          class="btn btn-outline-danger"
-          routerLink="/posts-list"
-          (click)="logout($event)"
-          *ngIf="loginIn"
-          type="submit">
-          Log Out
-        </button>
-        <button
-          class="btn btn-outline-success"
-          routerLink="/login"
-          *ngIf="!loginIn"
-          type="submit">
-          Log In
-        </button>
-      </div>
+<nav class="navbar navbar-expand-md navbar-dark bg-dark">
+  <div class="container">
+    <a class="navbar-brand" routerLink="/posts-list">{{ title }}</a>
+    <div class="d-flex align-items-center gap-2">
+      @if (session.isSignedIn()) {
+        <span class="text-light small">{{ session.user()?.name }}</span>
+        <a class="btn btn-outline-primary" routerLink="/posts-add">New post</a>
+        <button type="button" class="btn btn-outline-danger" (click)="signOut()">Sign out</button>
+      } @else {
+        <a class="btn btn-outline-success" routerLink="/login">Sign in</a>
+      }
     </div>
-  </nav>
+  </div>
+</nav>
