@@ -1,0 +1,12 @@
+# The build of the application, the dependencies and the reports of the tools
+# are not written by hand.
+dist
+node_modules
+coverage
+.angular
+
+# The lock file is written by the package manager.
+package-lock.json
+
+# The diagram of the original repository is a file of the drawing tool.
+docs/diagrams/legacy-class-template.drawio
