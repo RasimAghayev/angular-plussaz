@@ -1,0 +1,52 @@
+name: 'angular-plussaz'
+
+# Every bind mount of the stack lives under var/ (R92). The application itself
+# is baked into the image, so no versioned directory is mounted into a
+# container. Named volumes are forbidden.
+#
+# Resource limits are required for every service (R60, R64, R102).
+x-resources-default: &resources-default
+  deploy:
+    resources:
+      limits:
+        cpus: '1.0'
+        memory: 512M
+        pids: 256
+      reservations:
+        cpus: '0.25'
+        memory: 128M
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: build/app/Dockerfile
+      target: runtime
+    container_name: angular_plussaz_app
+    restart: always
+    environment:
+      # The address of the API. The same image can be pointed at another API
+      # with this value.
+      API_BASE_URL: ${API_BASE_URL:-https://jsonplaceholder.typicode.com}
+    ports:
+      - '${APP_PORT:-8080}:8080'
+    <<: *resources-default
+    networks:
+      - angular-plussaz
+
+  test:
+    build:
+      context: .
+      dockerfile: build/app/Dockerfile
+      target: test
+    profiles: ['test']
+    # The suite needs no database and no service of the stack. It reads no
+    # environment file, so the values of the local machine cannot change the
+    # result.
+    <<: *resources-default
+    networks:
+      - angular-plussaz
+
+networks:
+  angular-plussaz:
+    name: angular-plussaz

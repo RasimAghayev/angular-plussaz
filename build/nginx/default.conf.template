@@ -1,0 +1,44 @@
+# The server of the application.
+#
+# The address of the API is read from the environment, so the same image can
+# be pointed at another API without a new build.
+#
+# Every header of the answer is set in the server block and in no other place.
+# A header that is set inside a location replaces the headers of the server
+# block, so the page of the application would lose the protection of the
+# browser if the cache of the page were set in a location of its own.
+
+map $uri $cache_control {
+  default "no-cache";
+  "/index.html" "no-store";
+  "/config.json" "no-store";
+  "~*\.(?:js|css|woff2?|png|jpe?g|gif|svg|ico)$" "public, immutable";
+}
+
+server {
+  listen 8080;
+  server_name _;
+
+  root /usr/share/nginx/html;
+  index index.html;
+
+  # The application is a single page: every address that is not a file of the
+  # build is answered with the page of the application, and the router of the
+  # browser takes it from there.
+  location / {
+    try_files $uri $uri/ /index.html;
+  }
+
+  # The check of the container asks for it.
+  location = /healthz {
+    access_log off;
+    default_type text/plain;
+    return 200 "ok\n";
+  }
+
+  add_header Cache-Control $cache_control always;
+  add_header X-Content-Type-Options "nosniff" always;
+  add_header X-Frame-Options "DENY" always;
+  add_header Referrer-Policy "no-referrer" always;
+  add_header Content-Security-Policy "default-src 'self'; connect-src 'self' ${API_BASE_URL}; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'" always;
+}
