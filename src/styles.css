@@ -1,2 +1,26 @@
-/* You can add global styles to this file, and also import other style files */
-@import "~bootstrap/dist/css/bootstrap.min.css";
+/* The styles of the application. The frame of the pages comes from Bootstrap,
+   which is loaded from the node modules by the build. */
+
+body {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+app-root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+main {
+  flex: 1 0 auto;
+}
+
+.post-body {
+  white-space: pre-line;
+}
+
+.pagination .page-link {
+  cursor: pointer;
+}

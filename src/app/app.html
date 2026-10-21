@@ -1,0 +1,14 @@
+<app-header />
+
+<main class="container my-4">
+  @if (notification.successMessage(); as message) {
+    <div class="alert alert-success" role="status">{{ message }}</div>
+  }
+  @if (notification.errorMessage(); as message) {
+    <div class="alert alert-danger" role="alert">{{ message }}</div>
+  }
+
+  <router-outlet />
+</main>
+
+<app-footer />

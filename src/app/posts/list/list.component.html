@@ -1,20 +1,36 @@
-
-<div class="col-sm-12 col-lg-12 mb-1"
-*ngFor="let post of PostsList">
-  <div class="card p-3">
-    <figure class="p-3 mb-0">
-      <blockquote class="blockquote">
-        <a [routerLink]="['/posts-edit/', post.id]">
-          <h1>{{post.title}}</h1>
-        </a>
-      </blockquote>
-      <blockquote class="blockquote">
-        <p>{{post.body}}
-        </p>
-      </blockquote>
-      <figcaption class="blockquote-footer mb-0 mt-1 text-muted text-center">
-        Yazar haqqinda <cite title="Yazarov Yazar">{{post.userId}}</cite>
-      </figcaption>
-    </figure>
-  </div>
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3 mb-0">Posts</h1>
+  <a class="btn btn-primary" routerLink="/posts-add">New post</a>
 </div>
+
+@if (loading()) {
+  <p class="text-muted">The posts are on their way…</p>
+} @else if (pagePosts().length === 0) {
+  <p class="text-muted">The API holds no posts.</p>
+} @else {
+  <div class="row g-3">
+    @for (post of pagePosts(); track post.id) {
+      <div class="col-12">
+        <article class="card p-3">
+          <h2 class="h5">
+            <a [routerLink]="['/posts-edit', post.id]">{{ post.title }}</a>
+          </h2>
+          <p class="post-body mb-2">{{ post.body }}</p>
+          <footer class="d-flex justify-content-between align-items-center">
+            <small class="text-muted">Author {{ post.userId }}</small>
+            <button type="button" class="btn btn-outline-danger btn-sm" (click)="deletePost(post)">
+              Remove
+            </button>
+          </footer>
+        </article>
+      </div>
+    }
+  </div>
+
+  <app-pagination
+    [totalItems]="posts().length"
+    [pageSize]="pageSize"
+    [currentPage]="page()"
+    (pageChange)="goToPage($event)"
+  />
+}

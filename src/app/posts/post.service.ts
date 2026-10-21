@@ -1,79 +1,69 @@
-import { environment } from './../../environments/environment';
-import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
 import { Observable, throwError } from 'rxjs';
-import { retry, catchError } from 'rxjs/operators';
-import { Post } from './post.shared';
-import { NotificationService } from 'src/app/notification.service';
+import { catchError } from 'rxjs/operators';
 
-@Injectable({
-  providedIn: 'root',
-})
+import { API_BASE_URL } from '../core/api-base-url';
+import { describeApiError } from '../core/api-error';
+import { withReadRetry } from '../core/api-retry';
+import { NotificationService } from '../core/notification.service';
+import { Post, PostDraft } from './post.model';
+
+/**
+ * The posts of the API.
+ *
+ * A read is repeated when the API is unreachable or answers with a server
+ * error. A write is never repeated: a second attempt would create a second
+ * post.
+ */
+@Injectable({ providedIn: 'root' })
 export class PostService {
-  // Base url
-  baseurl=environment.baseurl
-  constructor(
-    private http: HttpClient,
-    private notificationService: NotificationService,
-    ) {}
-  // Http Headers
-  httpOptions = {
-    headers: new HttpHeaders({
-      'Content-Type': 'application/json',
-    }),
-  };
-  // POST
-  CreatePost(data: any): Observable<Post> {
-    return this.http
-      .post<Post>(
-        this.baseurl + '/posts/',
-        JSON.stringify(data),
-        this.httpOptions
-      )
-      .pipe(retry(1), catchError(this.errorHandl));
+  private readonly http = inject(HttpClient);
+  private readonly baseUrl = inject(API_BASE_URL);
+  private readonly notification = inject(NotificationService);
+
+  /** Every post of the API. */
+  list(): Observable<Post[]> {
+    return withReadRetry(() => this.http.get<Post[]>(this.url('/posts/'))).pipe(
+      catchError((error) => this.fail(error)),
+    );
   }
-  // GET ID
-  GetPost(id: string): Observable<Post> {
-    return this.http
-      .get<Post>(this.baseurl + '/posts/' + id)
-      .pipe(retry(1), catchError(this.errorHandl));
+
+  /** One post of the API. */
+  get(id: number): Observable<Post> {
+    return withReadRetry(() => this.http.get<Post>(this.url(`/posts/${id}`))).pipe(
+      catchError((error) => this.fail(error)),
+    );
   }
-  // GET ALL
-  GetPosts(): Observable<Post> {
+
+  /** Creates a post. */
+  create(draft: PostDraft): Observable<Post> {
     return this.http
-      .get<Post>(this.baseurl + '/posts/')
-      .pipe(retry(1), catchError(this.errorHandl));
+      .post<Post>(this.url('/posts/'), draft)
+      .pipe(catchError((error) => this.fail(error)));
   }
-  // PUT
-  UpdatePost(id: string, data: any): Observable<Post> {
+
+  /** Updates a post. */
+  update(id: number, draft: PostDraft): Observable<Post> {
     return this.http
-      .put<Post>(
-        this.baseurl + '/posts/' + id,
-        JSON.stringify(data),
-        this.httpOptions
-      )
-      .pipe(retry(1), catchError(this.errorHandl));
+      .put<Post>(this.url(`/posts/${id}`), draft)
+      .pipe(catchError((error) => this.fail(error)));
   }
-  // DELETE
-  DeletePost(id: string) {
+
+  /** Removes a post. */
+  delete(id: number): Observable<void> {
     return this.http
-      .delete<Post>(this.baseurl + '/posts/' + id, this.httpOptions)
-      .pipe(retry(1), catchError(this.errorHandl));
+      .delete<void>(this.url(`/posts/${id}`))
+      .pipe(catchError((error) => this.fail(error)));
   }
-  // Error handling
-  errorHandl(error: { error: { message: string; }; status: any; message: any; }) {
-    let errorMessage = '';
-    if (error.error instanceof ErrorEvent) {
-      // Get client-side error
-      errorMessage = error.error.message;
-    } else {
-      // Get server-side error
-      errorMessage = `Error Code: ${error.status}\nMessage: ${error.message}`;
-    }
-    console.log(errorMessage);
-    this.notificationService.setErrorMessage(errorMessage);
-    return throwError(() => {
-      return errorMessage;
-    });
+
+  private url(path: string): string {
+    return `${this.baseUrl}${path}`;
+  }
+
+  private fail(error: HttpErrorResponse): Observable<never> {
+    const message = describeApiError(error);
+    this.notification.setError(message);
+    return throwError(() => new Error(message));
   }
 }
