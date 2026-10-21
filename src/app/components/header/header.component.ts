@@ -1,37 +1,21 @@
-import { Component, OnInit } from '@angular/core';
-import { LocalService } from 'src/app/local.service';
-import { Router } from '@angular/router';
+import { Component, inject } from '@angular/core';
+import { Router, RouterLink } from '@angular/router';
+
+import { SessionService } from '../../core/session.service';
 
 @Component({
   selector: 'app-header',
+  imports: [RouterLink],
   templateUrl: './header.component.html',
-  styleUrls: ['./header.component.css']
 })
-export class HeaderComponent implements OnInit{
-  title ='Home';
-  public loginIn: boolean = false;
-  getTitle(){
-    return this.title;
-  }
-  ngOnInit():void{
+export class HeaderComponent {
+  protected readonly session = inject(SessionService);
+  protected readonly title = 'Angular PlussAz';
 
-    let user=this.localStore.getData(false,'username');
-    if (user) {
-      this.loginIn=true;
-    }
+  private readonly router = inject(Router);
+
+  protected signOut(): void {
+    this.session.signOut();
+    this.router.navigateByUrl('/posts-list');
   }
-  constructor(
-    private localStore: LocalService,
-    private router: Router
-    ){}
-    logout(event: MouseEvent){
-      event.preventDefault;
-      let user=this.localStore.getData(false,'username');
-      if (user) {
-        this.loginIn=false;
-        this.localStore.removeItem('username');
-        console.log(user)
-        this.router.navigate(['posts-list'])
-      }
-    }
 }

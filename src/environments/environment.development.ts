@@ -1,4 +1,5 @@
+/** The configuration of the development build. */
 export const environment = {
   production: false,
-  baseurl : 'https://jsonplaceholder.typicode.com'
+  apiBaseUrl: 'https://jsonplaceholder.typicode.com',
 };
