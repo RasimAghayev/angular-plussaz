@@ -1,4 +1,6 @@
 # Angular PlussAz
+![Views](https://hits.sh/github.com/RasimAghayev/angular-plussaz.svg?label=views&color=0e75b6)
+
 
 A front end for a blog API. It lists the posts of the API, opens one of them,
 creates a post, changes a post and removes a post. The demonstration talks to
