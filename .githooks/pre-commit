@@ -1,0 +1,4 @@
+#!/bin/sh
+# Pre-commit secret scan: block commits that introduce secrets into the repo.
+# Runs gitleaks protect on the staged changes; exits non-zero on any finding.
+gitleaks protect --source . --staged --verbose
