@@ -1,143 +1,51 @@
-# The architecture of Angular PlussAz
+﻿# ARCHITECTURE — angular-plussaz
 
-The application is a single page application. The browser loads the files of
-the build once, and every page of the application is drawn from those files.
-The data comes from a JSON API that the application does not own.
+## Overview
 
-## The shape of the system
+Angular 22 single-page application (standalone components, signals, zoneless change detection) consumed as static assets by nginx in a production container. No server-side application logic and no database live in this repo. The application is a client of an external JSON API (default: the public mock JSONPlaceholder) and renders what the API answers.
 
-```mermaid
-flowchart LR
-    visitor([Visitor]) -->|http| server[nginx in the container]
-    server -->|static files| browser[Browser]
-    browser -->|https, JSON| api[JSON API]
-    server -->|config.json| browser
-```
+## Goals and constraints
 
-The web server does two things: it delivers the files of the build, and it
-writes the file `config.json` next to them. The address of the API is read
-from that file when the application starts, so one image serves every
-environment.
+- One image, many environments: the API address is read at runtime from `config.json` (written by the container entrypoint from `API_BASE_URL`) with a compiled default in `src/environments/environment.ts`, so no rebuild is needed to point the image at another API.
+- No secrets in the image or repository: the API target is a public mock; the browser session holds a name only.
+- Zoneless, standalone, signal-first: the application uses the modern Angular programming model with no NgModules and no zone.js.
+- Client-side paging only: ten posts per page, paged in the browser from the full list the API returns.
 
-The API of the demonstration is the public mock
-[JSONPlaceholder](https://jsonplaceholder.typicode.com). The application holds
-no data of its own.
+## Modules / structure
 
-## The layers of the code
+| Area | Files | Responsibility |
+|---|---|---|
+| Bootstrap | `src/main.ts`, `src/app/app.config.ts`, `src/app/app.routes.ts`, `src/app/app.ts`, `src/app/app.html` | Application bootstrap, providers, routing, root shell with header/footer/notification frame. |
+| Core | `src/app/core/` | Runtime config (`RuntimeConfigService`), API base URL token (`API_BASE_URL`), API error sentences (`api-error`), read retry (`api-retry`), auth guard (`auth.guard`), session (`session.service`, `session-user`), notifications (`notification.service`). |
+| Feature: posts | `src/app/posts/{post.model,post.service,user.model,user.service,list,add,edit}` | Post/User models and services, list/add/edit pages. |
+| Feature: auth | `src/app/auth/sign-in/sign-in.*` | Username-based sign in (demo convenience), session start, return-URL handling. |
+| Presentational | `src/app/components/{header,footer,pagination}` | Shared UI components. |
+| Build assets | `public/favicon.ico`, `src/styles.css`, `src/index.html` | Static assets and global styles. |
+| Container | `build/app/Dockerfile`, `build/nginx/{nginx.conf,default.conf.template,entrypoint.sh}` | Multi-stage image, nginx runtime, runtime config writing. |
+| Environments | `src/environments/{environment,environment.development}.ts` | Compiled API base URL defaults. |
 
-```mermaid
-flowchart TD
-    pages[pages: posts, auth, components] --> services[services: post, user]
-    pages --> core[core: session, runtime config, notifications, retry]
-    services --> core
-    core --> http[HttpClient]
-```
+## Data flow
 
-| Folder               | Holds                                                                                                                    | Knows about                      |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------ | -------------------------------- |
-| `src/app/core`       | the session, the runtime configuration, the messages, the repetition of a read, the guard                                | nothing above it                 |
-| `src/app/posts`      | the model of a post, the service of the posts and of the users, the pages of the list, of the creation and of the change | `core`                           |
-| `src/app/auth`       | the page of the sign in                                                                                                  | `core`, the service of the users |
-| `src/app/components` | the head, the foot and the pages of the pagination                                                                       | `core`                           |
+1. `bootstrapApplication` boots `App` with `appConfig`.
+2. `appConfig` runs `provideAppInitializer(() => inject(RuntimeConfigService).load())`, which fetches `config.json` (relative to `document.baseURI`, cache disabled) before the first page is drawn; a missing or broken file falls back to the compiled `environment.apiBaseUrl`.
+3. `PostService` / `UserService` inject `API_BASE_URL` (resolved from the runtime config) and call the external API through `HttpClient` with the fetch backend.
+4. Reads are retried twice on network loss (status 0) or server errors (≥500) with a 250 ms pause via `withReadRetry`; 404 is final; writes are never retried.
+5. `describeApiError` turns any error shape into one user-facing sentence; the raw API answer never reaches the screen.
+6. `NotificationService` holds success/error signals; `App` shows the current message and auto-clears it after five seconds, cancelling the timer when a new message arrives.
+7. `authGuard` gates the write pages (`posts-add`, `posts-edit/:id`); unsigned-in visitors are redirected to `/login` with the intended path as `returnUrl` (only same-origin paths accepted).
+8. `SessionService` stores the user in `localStorage` under `angular-plussaz.session.v1` and exposes `isSignedIn` / `user` signals.
 
-The rule of the folders: a folder never reaches into a folder beside it. The
-pages of the posts ask the service of the posts, the service asks the core,
-and the core asks nothing but the browser. A dependency that points the other
-way is a defect, and the tests of the services hold that line.
+## Boundaries
 
-## The parts of the core
+- Core (infra/cross-cutting) vs feature (posts/auth) vs presentational components: clear separation, one responsibility per module.
+- Application boundary: the external API is the only truth about posts/users; the browser holds no copy of posts, only the session and the current page state.
+- Security boundary: the sign in and the guard are interface conveniences, not authentication or authorization. The public API answers every caller; a caller can always call the API directly. Documented as such in `docs/security.md`.
+- No DDD/CQRS/EDA: not warranted for this small, single-context SPA; KISS and YAGNI apply.
 
-| Part                   | Responsibility                                                                      |
-| ---------------------- | ----------------------------------------------------------------------------------- |
-| `RuntimeConfigService` | reads `config.json` before the first page is drawn and holds the address of the API |
-| `SessionService`       | holds the user of the session in a signal and in the storage of the browser         |
-| `NotificationService`  | holds the message of the last action in signals                                     |
-| `withReadRetry`        | repeats a read when the API cannot be reached or answers with a server error        |
-| `describeApiError`     | turns the answer of the API into a sentence for the user                            |
-| `authGuard`            | sends a visitor that has not signed in to the page of the sign in                   |
-| `API_BASE_URL`         | the token that carries the address of the API into the services                     |
+## Runtime / deployment
 
-## The state of the interface
-
-The application runs without zones. The state that the interface shows lives
-in signals, and the change detection reads the signals through `computed` and
-`effect`. The rule is simple: a value that the interface shows is a signal, a
-value that is derived from other signals is a `computed`, and a side effect
-that has to happen once belongs to an `effect`.
-
-The message of a successful action and the reason of a failure disappear after
-five seconds. The timer is set in an `effect` of the root component and is
-cancelled when a new message arrives, so a message never disappears earlier
-than its own five seconds.
-
-## The way a request leaves the application
-
-```mermaid
-sequenceDiagram
-    participant B as Browser
-    participant C as RuntimeConfigService
-    participant P as ListPostsComponent
-    participant S as PostService
-    participant A as JSON API
-
-    B->>C: read config.json
-    C-->>B: apiBaseUrl
-    B->>P: open the list of the posts
-    P->>S: list()
-    S->>S: withReadRetry
-    S->>A: GET /posts/
-    A-->>S: 200, the posts
-    S-->>P: the posts
-    P-->>B: ten posts a page
-```
-
-The service reads the address of the API from the token `API_BASE_URL` and
-builds the address of every call from it. The repetition of a read sits
-between the page and the service, so a page never repeats a call itself.
-
-## The way a write reaches the API
-
-```mermaid
-sequenceDiagram
-    participant V as Visitor
-    participant G as authGuard
-    participant F as AddPostComponent
-    participant S as PostService
-    participant A as JSON API
-
-    V->>G: open the page of a new post
-    G->>G: is there a session?
-    G-->>V: the page of the sign in
-    V->>F: the name of a user, the title and the body
-    F->>F: the form is valid?
-    F->>S: create(draft)
-    S->>A: POST /posts/
-    A-->>S: 201, the post
-    S-->>F: the post
-    F-->>V: the message and the list of the posts
-```
-
-A write is never repeated. The repetition of a request is only for the reads,
-because a second attempt of a write would create a second post.
-
-## The build
-
-The build produces a directory of static files. The image of the runtime
-copies that directory into the web server, and the web server answers every
-address that is not a file of the build with the page of the application. The
-router of the browser takes the address from there.
-
-```mermaid
-flowchart LR
-    source[src/] --> build[ng build] --> dist[dist/angular-plussaz/browser]
-    dist --> image[image of the runtime]
-    image --> nginx[nginx: static files]
-```
-
-The pieces of the build are in `build/app/Dockerfile` (the images), in
-`build/nginx/` (the web server) and in `angular.json` (the builder of the
-command line).
-
-## The decisions
-
-The reasons for the shape of the code are in [decisions/](decisions/).
+- Multi-stage Dockerfile (`build/app/Dockerfile`): `base` → `deps` → `build` → `test` → `runtime`. Base images digest-pinned (`node:24.22.0-alpine`, `nginx:1.31-alpine`).
+- Runtime serves static files from `/usr/share/nginx/html` as user `nginx` (non-root), `EXPOSE 8080`, `HEALTHCHECK` on `/healthz` (plain `ok`, does not touch the API), `ENTRYPOINT ["/entrypoint.sh"]`.
+- Entrypoint writes `config.json` and renders `default.conf.template` with `envsubst` (`API_BASE_URL`), then `exec nginx -g 'daemon off;'`.
+- nginx config: SPA fallback (`try_files $uri $uri/ /index.html`), hash-named assets cached `public, immutable`, `index.html`/`config.json` `no-store`, security headers (`X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, CSP with `connect-src` limited to `'self'` and the API address).
+- Compose: `app` service (restart always, resource limits) and `test` profile service (no env file, network only); env-driven `APP_PORT` / `API_BASE_URL`; single `angular-plussaz` network.
