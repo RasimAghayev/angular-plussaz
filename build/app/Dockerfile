@@ -14,7 +14,7 @@ WORKDIR /app
 FROM base AS deps
 
 COPY package.json package-lock.json ./
-RUN npm ci --no-audit --no-fund
+RUN --mount=type=cache,target=/root/.npm npm ci --no-audit --no-fund
 
 # The build of the application. Its result is the directory of the static files
 # that the web server delivers.
@@ -28,6 +28,8 @@ RUN npm run build
 FROM deps AS test
 
 COPY . .
+RUN npm run format:check && npm run test:ci
+
 CMD ["sh", "-c", "npm run format:check && npm run test:ci"]
 
 # The image that runs the application: the static files behind the web server.
