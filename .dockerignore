@@ -9,8 +9,20 @@ coverage
 .angular
 *.log
 
+# Documentation and drawings are not part of the image.
+docs/
+Untitled Diagram.drawio
+
+# Keys, certificates and secrets must never be baked into an image.
+*.key
+*.pem
+*.crt
+secrets/
+
 # The local environment file. It holds the values of the machine and must
 # never be baked into an image.
 .env
+.env.local
+.env.*.local
 .env.*
 !.env.example
