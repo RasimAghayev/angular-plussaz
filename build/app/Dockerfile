@@ -35,7 +35,7 @@ CMD ["sh", "-c", "npm run format:check && npm run test:ci"]
 # The image that runs the application: the static files behind the web server.
 # The process runs as the unprivileged user nginx, and the image holds no
 # secret.
-FROM nginx:1.31-alpine@sha256:713fc2ebfd92e8217db451477182ee91944b123d2b1ee9fd5a8c6e91ca6c3a11 AS runtime
+FROM nginx:1.31-alpine@sha256:fb4658584bd9a916ffb6f6e365f97c25cfdb2923801f551ea08356e695f14ff7 AS runtime
 
 COPY build/nginx/nginx.conf /etc/nginx/nginx.conf
 COPY build/nginx/default.conf.template /etc/nginx/templates/default.conf.template
